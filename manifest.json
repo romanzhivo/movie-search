@@ -1,0 +1,7 @@
+{
+  "name": "movie-search",
+  "short_name": "movie-search",
+  "description": "Поиск фильмов",
+  "start_url": "/",
+  "display": "standalone"
+}

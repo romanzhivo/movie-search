@@ -1,0 +1,4 @@
+bower_components/
+build/
+.idea/
+src/app/api-key.js

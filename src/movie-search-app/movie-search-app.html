@@ -1,0 +1,160 @@
+<link rel="import" href="../../bower_components/polymer-redux/polymer-redux.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-if.html">
+<link rel="import" href="../../bower_components/shadycss/apply-shim.html">
+<link rel="import" href="central-container.html">
+<link rel="import" href="get-movies-button.html">
+<link rel="import" href="load-more-button.html">
+<link rel="import" href="font-awesome.html">
+
+<link rel="stylesheet" href="../css/main-style.css">
+<link href="https://fonts.googleapis.com/css?family=Comfortaa:400,500,600,700&display=swap&subset=cyrillic" rel="stylesheet">
+
+<dom-module id="movie-search-app">
+  <template>
+    <style include="font-awesome">
+      * {
+        box-sizing: border-box;
+      }
+      :host {
+        display: block;
+        --central-container-bg: #f1f2f3;
+        --no-selected: {
+          -webkit-touch-callout: none;
+          -o-user-select: none;
+          -moz-user-select: none;
+          -khtml-user-select: none;
+          -webkit-user-select: none;
+          user-select: none;
+        }
+      }
+      .root_wrapper {
+        padding: 2em 0;
+        width: 700px;
+        margin: auto;
+      }
+      .header {
+        font-family: 'Comfortaa', cursive;
+        text-align: center;
+        margin: 0;
+      }
+      .search_field {
+        width: 100%;
+        padding: 0.5em 1em;
+        font-size: 1em;
+        margin: 2em 0 1em;
+      }
+      .credentials {
+        display: block;
+        position: relative;
+        width: 100%;
+        left: 0;
+        text-align: center;
+        margin: 2em 0 0;
+        font-size: 0.75em;
+        color: #9c9c9c;
+        text-decoration: none;
+      }
+      .credentials:hover {
+        text-decoration: underline;
+      }
+
+    </style>
+    <div class="root_wrapper">
+      <h3 class="header">{{header}}</h3>
+      <input class="search_field" autofocus type="text" placeholder="{{placeholder}}" on-input="handleSearch" on-keypress="handleSearch" />
+      <get-movies-button text="Поиск"></get-movies-button>
+      <central-container search-string="{{searchString}}"></central-container>
+      <load-more-button></load-more-button>
+      <a href="{{credentials.link}}" class="credentials" target="_blank">{{credentials.text}}</a>
+    </div>
+  </template>
+
+  <script>
+    var initial = {
+      update: false,
+      page: 1,
+      listSettings: {},
+      loadMore: false
+    };
+    var APP_STORE = Redux.createStore(updateList, initial);
+
+    function updateList(state, action) {
+      switch (action.type) {
+        case 'GET_LIST':
+          return Object.assign({}, state, {
+            update: true,
+            loadMore: false,
+            page: 1
+          });
+        case 'UPDATE_LIST':
+          return Object.assign({}, state, {
+            update: false,
+            loadMore: false,
+            listSettings: action.getListSettings()
+          });
+        case 'LOAD_MORE':
+          return Object.assign({}, state, {
+            page: state.page + 1,
+            update: true,
+            loadMore: true
+          });
+        default:
+          return state
+      }
+    }
+
+    /**
+     * @customElement
+     * @polymer
+     */
+    class MovieSearchApp extends Polymer.Element {
+      static get is() {
+        return 'movie-search-app';
+      }
+      static get properties() {
+        return {
+          header: {
+            type: String,
+            value: 'Поиск фильмов'
+          },
+          placeholder: {
+            type: String,
+            value: 'Введите название фильма'
+          },
+          searchString: {
+            type: String,
+            value: ""
+          },
+          credentials: {
+            type: Object,
+            value: {
+              text: 'На основе TMDB API',
+              link: 'https://www.themoviedb.org/documentation/api'
+            }
+          }
+        };
+      }
+      handleSearch(e) {
+        var self = this;
+        var value = e.target.value;
+        var isEnter = false;
+
+        self.set('searchString', value);
+
+        if(
+            e.keyCode === 13
+            || e.which === 13
+            || e.key === 'Enter'
+            || e.code === 'Enter'
+            || e.code === 'NumpadEnter'
+        ) isEnter = true;
+        
+        if(isEnter) APP_STORE.dispatch({type: 'GET_LIST'});
+      }
+      
+    }
+
+    window.customElements.define(MovieSearchApp.is, MovieSearchApp);
+  </script>
+</dom-module>

@@ -1,0 +1,69 @@
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+
+<dom-module id="load-more-button">
+    <template class="noselected">
+        <style include="font-awesome">
+            :host {
+                display: block;
+                width: auto;
+                text-align: center;
+            }
+
+            .load_more {
+                display: inline-block;
+                padding: 0.5em 1em;
+                background-color: #4698c7;
+                color: #FFF;
+                cursor: pointer;
+            }
+            
+        </style>
+        <template is="dom-if" if="{{isMoreVisible}}">
+            <div class="load_more" on-click="handleClickMore">{{text}}</div>
+        </template>
+    </template>
+
+    <script>
+        /**
+         * @customElement
+         * @polymer
+         */
+        class LoadMoreButton extends Polymer.Element {
+            constructor() {
+                super();
+
+                var self = this;
+                
+                APP_STORE.subscribe(() => {
+                    var state = APP_STORE.getState();
+
+                    if(!state.update && state.listSettings.currentPage < state.listSettings.totalPages) {
+                        self.set('isMoreVisible', true);
+                    } else {
+                        self.set('isMoreVisible', false);
+                    }
+                });
+            }
+            static get is() { return 'load-more-button'; }
+            static get properties() {
+                return {
+                    text: {
+                        type: String,
+                        value: "Ещё"
+                    },
+                    isMoreVisible: {
+                        type: Boolean,
+                        value: false
+                    }
+                };
+            }
+            handleClickMore() {
+                var self = this;
+                var state = APP_STORE.getState();
+                APP_STORE.dispatch({type: 'LOAD_MORE'});
+            }
+        }
+
+        window.customElements.define(LoadMoreButton.is, LoadMoreButton);
+    </script>
+</dom-module>

@@ -1,0 +1,221 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<script src="../app/api-key.js"></script>
+
+<dom-module id="central-container">
+  <template>
+    <style>
+      :host {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin: 2em auto;
+      }
+      .list_container {
+        display: block;
+        width: 100%;
+        background-color: var(--central-container-bg, #5890ad);
+      }
+      .one_film {
+        padding: 1em;
+        box-sizing: border-box;
+        display: inline-block;
+        width: 100%;
+        border-bottom: 2px solid #d4cfc9;
+      }
+      .one_film:last-of-type {
+        border-bottom: 0;
+      }
+      .one_film__image_wrapp {
+        display: inline-block;
+        position: relative;
+        width: 9em;
+        height: 9em;
+      }
+      .one_film__image_wrapp > img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .one_film__description_wrapp {
+        width: 74%;
+        float: right;
+      }
+      .one_film__description_wrapp > .title_wrapp {
+        margin: 0 0 1em;
+      }
+      .one_film__description_wrapp > .title_wrapp .title {
+        margin: 0;
+      }
+      .one_film__description_wrapp > .title_wrapp .original_title {
+        font-size: 0.8em;
+      }
+      .one_film__description_wrapp > .meta_description {
+        margin-top: 2em;
+        color: #4698c7;
+      }
+      .empty_poster {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      .empty_poster:before {
+        content: "";
+        display: inline-block;
+        height: 100%;
+        vertical-align: middle;
+      }
+      .empty_results_notif {
+        line-height: 6em;
+        text-align: center;
+      }
+    </style>
+    
+    <div class="list_container">
+      <dom-repeat items="{{dataArr}}">
+        <template>
+            <div class="one_film">
+              <div class="one_film__image_wrapp">
+                <template is="dom-if" if="{{item.poster_path}}">
+                  <img src="{{imgStoreUrl}}{{item.poster_path}}" />
+                </template>
+                <template is="dom-if" if="{{!item.poster_path}}">
+                  <div class="empty_poster">
+                    <span class="vert-m">{{emptyPosterNotif}}</span>
+                  </div>
+                </template>
+              </div>
+              <div class="one_film__description_wrapp">
+                <div class="title_wrapp">
+                  <h2 class="title">{{item.title}}</h2>
+                  <template is="dom-if" if="{{isTitlesDifferent(item.title, item.original_title)}}">
+                    <div class="original_title">{{item.original_title}}</div>
+                  </template>
+                </div>
+                <div class="description">{{item.overview}}</div>
+                <div class="meta_description">
+                  <div>{{releaseYearText}}: {{getMovieYear(item.release_date)}}</div>
+                  <div>{{voteAverageText}}: {{item.vote_average}}</div>
+                </div>
+              </div>
+            </div>
+        </template>
+      </dom-repeat>
+    </div>
+
+    <template is="dom-if" if="{{isEmptyResult}}">
+      <div class="empty_results_notif">{{emptyResultsNotif}}</div>
+    </template>
+
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class CentralContainer extends Polymer.Element {
+      constructor() {
+        super();
+
+        if(!API_KEY) return null;
+
+        let self = this;
+        let API_URL = "https://api.themoviedb.org/3/search/movie?language=ru&include_adult=true" + "&api_key=" + API_KEY;
+        let SEARCH_QUERY = "";
+
+        APP_STORE.subscribe(() => {
+          SEARCH_QUERY = self.searchString;
+          if(!SEARCH_QUERY) {
+            alert('Введите запрос');
+            return false;
+          }
+          
+          let state = APP_STORE.getState();
+          let isLoadMore = state.loadMore;
+          let requestedPage = state.page;
+
+          let SEARCH_URL = `${API_URL}&query=${SEARCH_QUERY}&page=${requestedPage}`;
+          
+          if(state.update === true) {
+            if(!isLoadMore) self.set('dataArr', undefined);
+            self.set('isEmptyResult', false);
+
+            fetch(SEARCH_URL, {
+              headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+              },
+            }).then(response => {
+              if (!response.ok) {
+                throw new Error("HTTP error " + response.status);
+              }
+              return response.json();
+            })
+            .then(json => {
+              var finalList;
+
+              if(json) {
+                var isEmptyResult = Array.isArray(json.results) ? json.results.length === 0 : true;
+                let currentPage = json.page;
+                let totalPages = json.total_pages;
+
+                if(isEmptyResult) self.set('isEmptyResult', true)
+                else self.set('isEmptyResult', false);
+                
+                finalList = isLoadMore ? [...self.dataArr, ...json.results] : json.results;
+                self.set('dataArr', finalList);
+
+                APP_STORE.dispatch({type: 'UPDATE_LIST', getListSettings: ()=>{
+                  return {
+                    data: finalList,
+                    currentPage: currentPage,
+                    totalPages: totalPages
+                  }
+                }});
+              }
+            });
+          }
+        });
+      }
+      static get is() { return 'central-container'; }
+      static  get properties() {
+        return {
+          dataArr: {
+            value: undefined
+          },
+          imgStoreUrl: {
+            type: String,
+            value: 'https://image.tmdb.org/t/p/w500/'
+          },
+          isEmptyResult: {
+            type: Boolean,
+            value: false
+          },
+          emptyResultsNotif: {
+            type: String,
+            value: "По вашему запросу ничего не найдено"
+          },
+          emptyPosterNotif: {
+            type: String,
+            value: "Нет постера"
+          },
+          releaseYearText: {
+            type: String,
+            value: "Год"
+          },
+          voteAverageText: {
+            type: String,
+            value: "Средняя оценка"
+          }
+        }
+      }
+      getMovieYear(str) {
+        return str ? new Date(str).getFullYear() : "-";
+      }
+      isTitlesDifferent(title, original_title) {
+        return title !== original_title;
+      }
+    }
+
+    window.customElements.define(CentralContainer.is, CentralContainer);
+
+  </script>
+</dom-module>

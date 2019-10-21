@@ -1,0 +1,47 @@
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<dom-module id="get-movies-button">
+    <template class="noselected">
+        <style>
+            :host {
+                display: block;
+                width: auto;
+                text-align: center;
+            }
+            .button_container {
+                display: inline-block;
+                padding: 0.5em 1em;
+                background-color: #4698c7;
+                color: #FFF;
+                cursor: pointer;
+                @apply --no-selected;
+            }
+        </style>
+        <div class="button_container noselected" on-click="handleClick" hidden$=[[true]]>{{text}}</div>
+    </template>
+
+    <script>
+        /**
+         * @customElement
+         * @polymer
+         */
+        class GetMoviesButton extends Polymer.Element {
+            static get is() { return 'get-movies-button'; }
+            static get properties() {
+                return {
+                    text: {
+                        type: String,
+                        value: "Привет!"
+                    },
+                    isHidden: {
+                        value: true
+                    }
+                };
+            }
+            handleClick() {
+                APP_STORE.dispatch({type: 'GET_LIST'});
+            }
+        }
+
+        window.customElements.define(GetMoviesButton.is, GetMoviesButton);
+    </script>
+</dom-module>
